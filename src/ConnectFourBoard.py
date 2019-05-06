@@ -3,6 +3,57 @@ import numpy as np
 from os import system
 from connect4 import HumanPlayer,ComputerPlayer
 
+
+def check_consecutive_indices(l):
+    d = np.diff(l) == 1
+    return sum(d) >= 3
+
+
+def horizontal_four(grid):
+    for row in grid:
+        if len(np.nonzero(row)[0]) != 0:
+            cnt_of_one = len(np.nonzero(row == 1)[0])  # get the number of occurrences of one
+            cnt_of_two = len(np.nonzero(row == 2)[0])  # get the number of occurrences of two
+
+            if cnt_of_one >= 4:
+                y_indices = np.nonzero(row == 1)[0]
+                if check_consecutive_indices(y_indices):
+                    win_situation = True
+                    return win_situation
+                else:
+                    continue
+            elif cnt_of_two >= 4:
+                y_indices = np.nonzero(row == 2)[0]
+                if check_consecutive_indices(y_indices):
+                    win_situation = True
+                    return win_situation
+                else:
+                    continue
+            else:
+                continue
+    return False
+
+
+def vertical_four(grid):
+    grid_transp = np.transpose(grid)
+    return horizontal_four(grid_transp)
+
+def diagonal_four(grid):
+    # TODO
+    pass
+
+
+# for the print board function
+def check_color(x):
+    if x == 1:
+        color = Fore.RED
+    elif x == 2:
+        color = Fore.YELLOW
+    else:
+        color = Fore.RESET
+    return color
+
+
 class ConnectFourBoard(object):
     '''
         Suppose the game is a numpy array of 6*7, initially all cells are filled with zeros
@@ -21,11 +72,13 @@ class ConnectFourBoard(object):
         self.winner = None
 
     def check_board_for_a_win(self, current_grid_state):
-        if (horizontal_four(current_grid_state)
-                or vertical_four(current_grid_state)
-                or diagonal_four(current_grid_state)):
-            self.game_ended = True
-            self.winner = self.current_player
+        cnt_nonzero = len(np.nonzero(current_grid_state))
+        if cnt_nonzero > 6:  # only at the seventh game does the probability of a win appear
+            if (horizontal_four(current_grid_state)
+                    or vertical_four(current_grid_state)
+                    or diagonal_four(current_grid_state)):
+                self.game_ended = True
+                self.winner = self.current_player
 
     def toggle_players_and_get_next_move(self):
         # toggle players
