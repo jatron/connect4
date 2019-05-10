@@ -7,8 +7,8 @@ from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 import numpy as np
 
-from game.board import ConnectFourBoard
-from game.agents import Agents, ComputerPlayer, HumanPlayer, NetworkPlayer, RandomPlayer
+from .game.board import ConnectFourBoard
+from .game.agents import Agents, ComputerPlayer, HumanPlayer, NetworkPlayer, RandomPlayer
 
 
 if __name__ == '__main__':

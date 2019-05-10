@@ -1,7 +1,7 @@
 from colorama import Fore, Back, Style
 import numpy as np
 from os import system
-from connect4 import HumanPlayer,ComputerPlayer
+from .agents import HumanPlayer, ComputerPlayer
 
 
 # for the print board function
@@ -13,6 +13,7 @@ def check_color(x):
     else:
         color = Fore.RESET
     return color
+
 
 def check_consecutive_indices(l):
     d = np.diff(l) == 1
@@ -57,10 +58,12 @@ def horizontal_four(grid):
             return True
     return False
 
+
 # returns True for vertical connect 4 winning state
 def vertical_four(grid):
     grid_transp = np.transpose(grid)
     return horizontal_four(grid_transp)
+
 
 # returns True for diagonal connect 4 winning state
 def diagonal_four(grid):
@@ -72,6 +75,23 @@ def diagonal_four(grid):
         return True
     else:
         return False
+
+
+def move_is_valid(column_num):
+    if 1 <= column_num <= 7:
+        return True
+    else:
+        print(Fore.RED + "Wrong choice of coloumn!")
+
+
+def get_row_for_move(column_num, grid):
+    column_arr = grid[:, column_num - 1]
+    non_zero_indices = np.nonzero(column_arr)[0]
+    if len(non_zero_indices) is not 0:
+        row_index = non_zero_indices[len(non_zero_indices) - 1]  # The last non zero element
+    else:  # Column is already full
+        row_index = -1  # A flag meaning col is already full hence it's a wasted move
+    return row_index
 
 
 class ConnectFourBoard(object):
@@ -101,8 +121,23 @@ class ConnectFourBoard(object):
                 self.game_ended = True
                 self.winner = self.current_player
                 return True
+            else:
+                return False
         else:
             return False
+
+    def make_move(self, column_num):
+        if move_is_valid(column_num):
+            if self.current_player == self.player1:
+                disk_to_be_inserted = 1
+            else:
+                disk_to_be_inserted = 2
+
+            row_index = get_row_for_move(column_num, self.current_grid_state)
+            if row_index != -1:
+                self.current_grid_state[row_index][column_num - 1] = disk_to_be_inserted
+            else:
+                print(Fore.RED + "This column is already full! :o")
 
     def toggle_players_and_get_next_move(self):
         # toggle players
