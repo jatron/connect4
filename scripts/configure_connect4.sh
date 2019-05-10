@@ -11,10 +11,10 @@ if ! which pip3 > /dev/null; then
     if "$REPLY" = "n"; then
         exit 0
     fi
-    apt install pip3
+    sudo apt install python3-pip
 fi
 
-pip install colorama loguru
+pip3 install colorama docopt gevent loguru tinydb ujson
 
 echo "Installed required python packages succesfully."
 
