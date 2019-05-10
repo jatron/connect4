@@ -1,12 +1,17 @@
 from enum import Enum
 from random import Random
 from sys import stdout
+from time import sleep
+import json
 
 from colorama import Fore
+from gevent.server import DatagramServer
+from gevent import socket
 from loguru import logger
 from tinydb import TinyDB
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
+import numpy as np
 
 
 class Agents(Enum):
@@ -53,7 +58,9 @@ class Player(object):
 class ComputerPlayer(Player):
 
     def __init__(self, **kwargs):
+
         super().__init__(**kwargs)
+
         self.type = Agents.ComputerPlayer
 
     def next_move(self, connect4_board):
@@ -67,7 +74,9 @@ class ComputerPlayer(Player):
 class HumanPlayer(Player):
 
     def __init__(self, **kwargs):
+
         super().__init__(**kwargs)
+
         self.type = Agents.HumanPlayer
 
     def next_move(self, connect4_board):
@@ -136,24 +145,164 @@ class HumanPlayer(Player):
         connect4_board.print_board()
 
         if won:
+            logger.bind(to_file=True).success('Player {} have won.'.format(self.no))
             print(self.color + 'Congratulations, player {}. you won.'.format(self.no) + Fore.RESET)
         else:
+            logger.bind(to_file=True).success('Player {} have lost.'.format(self.no))
             print(Fore.CYAN + 'Good luck next time, player {}. you lost.'.format(self.no) + Fore.RESET)
 
 class NetworkPlayer(Player):
 
-    def __init__(self, **kwargs):
+    class Data(Enum):
+
+        Null = None
+        Move = 'MV'
+        Board = 'BR'
+        ResendBoard = 'RB'
+        Resend = 'RS'
+        Log = 'LG'
+        FinishedWin = 'FW'
+        FinishedLose = 'FL'
+
+    class Server(DatagramServer):
+
+        def __init__(self, owner, **kwargs):
+
+            super().__init__(self, **kwargs)
+
+            self.owner = owner
+            self.latest_recieved_board = None
+            self.latest_recieved_move = None
+
+        def handle(self, data, address):
+
+            logger.debug('Recieved {} from {}.'.format(data, address[0]))
+
+            if address == self.owner.peer_address:
+
+                data = json.loads(data.decode())
+
+                for elm in data:
+
+                    latest_recieved_data = NetworkPlayer.Data(elm['type'])
+                    if latest_recieved_data is NetworkPlayer.Data.Move:
+                        self.latest_recieved_move = elm['content']
+                    elif latest_recieved_data is NetworkPlayer.Data.Board:
+                        self.latest_recieved_board = np.array(elm['content'], dtype=int)
+                    elif latest_recieved_data is NetworkPlayer.Data.ResendBoard:
+                        NetworkPlayer.Server.send(
+                            data=[{
+                                'type': NetworkPlayer.Data.Board,
+                                'content': self.owner.latest_connect4_board
+                            }],
+                            address=self.owner.peer_address,
+                            port=self.owner.peer_port
+                        )
+                    elif latest_recieved_data is NetworkPlayer.Data.Resend:
+                        NetworkPlayer.Server.send(
+                            data=self.owner.latest_sent_message,
+                            address=self.owner.peer_address,
+                            port=self.owner.peer_port
+                        )
+                    elif latest_recieved_data is NetworkPlayer.Data.Log:
+                        logger.bind(to_file=True).info('```' + elm['content'] + '```')
+                    elif latest_recieved_data is NetworkPlayer.Data.FinishedWin:
+                        logger.bind(to_file=True).success('Player {} have won.'.format(self.owner.no))
+                        print(self.owner.color + 'Congratulations, player {}. you won.'.format(self.owner.no) + Fore.RESET)
+                    elif latest_recieved_data is NetworkPlayer.Data.FinishedLose:
+                        logger.bind(to_file=True).success('Player {} have lost.'.format(self.owner.no))
+                        print(Fore.CYAN + 'Good luck next time, player {}. you lost.'.format(self.owner.no) + Fore.RESET)
+
+                self.stop()
+                self.start()
+
+        @staticmethod
+        def send(data, address, port):
+
+            data = json.dumps(data).encode()
+
+            sock = socket.socket(type=socket.SOCK_DGRAM)
+            sock.connect((address, port))
+            sock.send(data)
+            sock.close()
+
+    def __init__(self, peer_address='127.0.0.1', peer_port=3500, local_port=3500, **kwargs):
+
         super().__init__(self, **kwargs)
+
         self.type = Agents.NetworkPlayer
+        self.latest_connect4_board = None
+
+        self.peer_address = peer_address
+        self.peer_port = peer_address
+        self.server = NetworkPlayer.Server(listener=':{}'.format(local_port), owner=self)
+        self.server.start()
+        self.latest_sent_message = [{
+            'type': NetworkPlayer.Data.Null,
+            'content': None
+        }]
 
     def next_move(self, connect4_board):
 
-        raise NotImplementedError
+        self.latest_connect4_board = connect4_board.tolist()
+
+        self.latest_sent_message = [
+            {
+                'type': NetworkPlayer.Data.Move,
+                'content': connect4_board.next_move
+            },
+            {
+                'type': NetworkPlayer.Data.Board,
+                'content': self.latest_connect4_board
+            }
+        ]
+
+        NetworkPlayer.Server.send(data=self.latest_sent_message, address=self.peer_address, port=self.peer_port)
+
+        while self.server.latest_recieved_move is None:
+            self.server.serve_forever()
+
+        nxt_mv = self.server.latest_recieved_move
+        self.server.latest_recieved_move = None
+
+        return nxt_mv
 
     def game_finished(self, connect4_board, won:bool):
 
-        raise NotImplementedError
+        self.latest_connect4_board = connect4_board.tolist()
+
+        self.latest_sent_message = [
+            {
+                'type': NetworkPlayer.Data.Null,
+                'content': None
+            },
+            {
+                'type': NetworkPlayer.Data.Move,
+                'content': connect4_board.next_move
+            },
+            {
+                'type': NetworkPlayer.Data.Board,
+                'content': self.latest_connect4_board
+            }
+        ]
+
+        if won:
+            logger.bind(to_file=True).success('Player {} have lost.'.format(self.no))
+            print(self.color + 'Congratulations, player {}. you won.'.format(self.no) + Fore.RESET)
+            self.latest_sent_message[0]['type'] = NetworkPlayer.Data.FinishedLose
+        else:
+            logger.bind(to_file=True).success('Player {} have lost.'.format(self.no))
+            print(Fore.CYAN + 'Good luck next time, player {}. you lost.'.format(self.no) + Fore.RESET)
+            self.latest_sent_message[0]['type'] = NetworkPlayer.Data.FinishedWin
+
 
 def RandomPlayer(**kwargs):
 
     raise NotImplementedError
+
+
+agents = {
+    Agents.ComputerPlayer: ComputerPlayer,
+    Agents.HumanPlayer: HumanPlayer,
+    Agents.NetworkPlayer: NetworkPlayer
+}
