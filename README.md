@@ -33,6 +33,7 @@ Connect Four is a two-player connection game in which the players first choose a
 - Python module `docopt`
 - Python module `gevent`
 - Python module `loguru`
+- Python module `prompt_toolkit`
 - Python module `tinydb`
 - Python module `ujson`
 <br>

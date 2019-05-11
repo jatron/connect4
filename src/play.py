@@ -34,87 +34,122 @@ from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 import numpy as np
 
-from game.agents import (Agents, ComputerPlayer, HumanPlayer, NetworkPlayer,
-                         RandomPlayer, agents)
+from game.agents import (
+    Agents,
+    ComputerPlayer,
+    HumanPlayer,
+    NetworkPlayer,
+    RandomPlayer,
+    agents,
+)
 from game.board import ConnectFourBoard
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
 
     args = docopt(__doc__)
 
     logger.remove(0)
 
-    if args['--verbose']:
-        logger.add(stdout, filter=lambda record: 'verbose' in record['extra'])
+    if args["--verbose"]:
+        logger.add(stdout, filter=lambda record: "verbose" in record["extra"])
 
-    if args['--debugging']:
-        logger.add('debug{time}.log', filter=lambda record: 'verbose' not in record['extra'])
-
-    try:
-        time_limit = int(args['--time-limit'])
-    except:
-        logger.error('Time limit must be an int value.')
-        exit(Fore.RED + 'Time limit must be an int value.' + Fore.RESET)
+    if args["--debugging"]:
+        logger.add(
+            "debug{time}.log", filter=lambda record: "verbose" not in record["extra"]
+        )
 
     try:
-        local_port = int(args['--local-port'])
+        time_limit = int(args["--time-limit"])
     except:
-        logger.error('Local port must be an int value.')
-        exit(Fore.RED + 'Local port must be an int value.' + Fore.RESET)
+        logger.error("Time limit must be an int value.")
+        exit(Fore.RED + "Time limit must be an int value." + Fore.RESET)
 
     try:
-        peer_port = int(args['--peer-port'])
+        local_port = int(args["--local-port"])
     except:
-        logger.error('Peer port must be an int value.')
-        exit(Fore.RED + 'Peer port must be an int value.' + Fore.RESET)
+        logger.error("Local port must be an int value.")
+        exit(Fore.RED + "Local port must be an int value." + Fore.RESET)
 
-    if args['load']:
+    try:
+        peer_port = int(args["--peer-port"])
+    except:
+        logger.error("Peer port must be an int value.")
+        exit(Fore.RED + "Peer port must be an int value." + Fore.RESET)
 
-        db = TinyDB(args['<savefile>'], storage=CachingMiddleware(JSONStorage))
+    if args["load"]:
+
+        db = TinyDB(args["<savefile>"], storage=CachingMiddleware(JSONStorage))
         q = Query()
-        data = db.get(q.fname==args['<savefile>'])
+        data = db.get(q.fname == args["<savefile>"])
 
-        with open(data['player1'], 'rb') as p1:
-                player1 = pickle.load(p1)
-        with open(data['player2'], 'rb') as p2:
-                player2 = pickle.load(p2)
+        with open(data["player1"], "rb") as p1:
+            player1 = pickle.load(p1)
+        with open(data["player2"], "rb") as p2:
+            player2 = pickle.load(p2)
 
-        if data['current_player'] == 1: ## TODO, Fix numbering
+        if data["current_player"] == 1:  # TODO, Fix numbering
             current_player = player2
         else:
             current_player = player1
-        initial_state = np.array(data['board'], dtype=int)
+        initial_state = np.array(data["board"], dtype=int)
 
         db.close()
 
-        ConnectFourBoard(player1=player1, player2=player2, current_player=current_player, initial_state=initial_state)
+        ConnectFourBoard(
+            player1=player1,
+            player2=player2,
+            current_player=current_player,
+            initial_state=initial_state,
+        )
 
-    elif args['vs']:
+    elif args["vs"]:
 
         try:
 
-            player1, player2= Agents(args['<playertype>'][0]), Agents(args['<playertype>'][1])
+            player1, player2 = (
+                Agents(args["<playertype>"][0]),
+                Agents(args["<playertype>"][1]),
+            )
 
             if player1 is Agents.NetworkPlayer and player2 is Agents.NetworkPlayer:
-                logger.error('You must have at lease one local player.')
+                logger.error("You must have at lease one local player.")
                 raise ValueError
             elif player1 is Agents.NetworkPlayer or player2 is Agents.NetworkPlayer:
-                if args['--peer-address'] is None:
-                    logger.error('You must enter the peer player\'s IP address to play a network game.')
+                if args["--peer-address"] is None:
+                    logger.error(
+                        "You must enter the peer player's IP address to play a network game."
+                    )
                     raise ValueError
 
                 if player1 is Agents.NetworkPlayer:
-                    player1 = agents[player1](local_port=local_port, peer_address=args['--peer-address'], peer_port=peer_port, no=1, time_limit=time_limit)
+                    player1 = agents[player1](
+                        local_port=local_port,
+                        peer_address=args["--peer-address"],
+                        peer_port=peer_port,
+                        no=1,
+                        time_limit=time_limit,
+                    )
                     player2 = agents[player2](no=2, time_limit=time_limit)
                 elif player2 is Agents.NetworkPlayer:
                     player1 = agents[player1](no=1, time_limit=time_limit)
-                    player2 = agents[player2](local_port=local_port, peer_address=args['--peer-address'], peer_port=peer_port, no=2, time_limit=time_limit)
+                    player2 = agents[player2](
+                        local_port=local_port,
+                        peer_address=args["--peer-address"],
+                        peer_port=peer_port,
+                        no=2,
+                        time_limit=time_limit,
+                    )
             else:
                 player1 = agents[player1](no=1, time_limit=time_limit)
                 player2 = agents[player2](no=2, time_limit=time_limit)
 
         except:
-            print(Fore.RED + 'You must have at lease one local player.\nYou must enter the peer player\'s IP address to play a network game.' + Fore.RESET)
+            print(
+                Fore.RED
+                + "You must have at lease one local player.\nYou must enter the peer player's IP address to play a network game."
+                + Fore.RESET
+            )
             exit(__doc__)
 
         ConnectFourBoard(player1=player1, player2=player2)
