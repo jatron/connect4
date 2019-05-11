@@ -127,6 +127,7 @@ class ConnectFourBoard(object):
             return False
 
     def make_move(self, column_num):
+        switch_turns = False
         if move_is_valid(column_num):
             if self.current_player == self.player1:
                 disk_to_be_inserted = 1
@@ -136,20 +137,30 @@ class ConnectFourBoard(object):
             row_index = get_row_for_move(column_num, self.current_grid_state)
             if row_index != -1:
                 self.current_grid_state[row_index][column_num - 1] = disk_to_be_inserted
+                switch_turns = True
             else:
                 print(Fore.RED + "This column is already full! :o")
+                switch_turns = False
+
+        return switch_turns
 
     def toggle_players_and_get_next_move(self):
-        # toggle players
-        if self.current_player == self.player1:
-            self.current_player = self.player2
-        else:
-            self.current_player = self.player1
+        while not self.game_ended:
+            if self.current_player == self.player1:  # Human player
+                move = self.player1.next_move(self.current_grid_state)
+                if self.make_move(move):
+                    if self.check_board_for_a_win(self.current_grid_state):
+                        self.game_ended=True
+                    else:
+                        self.current_player = self.player2
+            else:
+                move = self.player2.next_move(self.current_grid_state)
+                if self.make_move(move):
+                    if self.check_board_for_a_win(self.current_grid_state):
+                        self.game_ended = True
+                    else:
+                        self.current_player = self.player1
 
-        # get the next move (still to be improved/removed)
-        print(Fore.GREEN + "It's player ", self.current_player, "\'s turn:")
-        # prompting the user to enter their next move which is the number of coloumn at which they wish to play
-        self.next_move = int(input())
 
     '''
     Board should look like this: (with red and yellow 'O's)
