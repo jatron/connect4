@@ -1,13 +1,14 @@
 from enum import Enum
-from random import Random
+from random import choice, randint
 from sys import stdout
+import datetime
 import pickle
 
 from colorama import Fore
 from gevent.server import DatagramServer
-from gevent import sleep, socket
 from loguru import logger
 from prompt_toolkit import PromptSession
+from prompt_toolkit.application.current import get_app
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.formatted_text import ANSI
@@ -15,6 +16,7 @@ from prompt_toolkit.history import InMemoryHistory
 from tinydb import TinyDB
 from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
+import gevent
 import numpy as np
 import ujson as json
 
@@ -56,11 +58,6 @@ class Player(object):
 
 
 class ComputerPlayer(Player):
-    def __init__(self, *args, **kwargs):
-
-        super(ComputerPlayer, self).__init__(*args, **kwargs)
-
-        self.type = Agents.ComputerPlayer
 
     def next_move(self, connect4_board):
 
@@ -72,16 +69,14 @@ class ComputerPlayer(Player):
 
 
 class HumanPlayer(Player):
-    def __init__(self, *args, **kwargs):
-
-        super(HumanPlayer, self).__init__(*args, **kwargs)
-
-        self.type = Agents.HumanPlayer
 
     def next_move(self, connect4_board):
 
         connect4_board.print_board()
 
+        self.start_time = datetime.datetime.now()
+        self.time_remaining = self.time_limit
+        self.prt_str = None
         command_completer = WordCompleter(
             ["exit", "logout", "end", "forfeit", "save savefile.c4"], ignore_case=True
         )
@@ -94,6 +89,7 @@ class HumanPlayer(Player):
             history=history,
             auto_suggest=AutoSuggestFromHistory(),
             enable_history_search=True,
+            erase_when_done=True,
         )
         mv = self._next_move(connect4_board=connect4_board, prm_session=session)
 
@@ -101,17 +97,27 @@ class HumanPlayer(Player):
 
         return mv
 
-    def _next_move(self, connect4_board, prm_session, prt_str=None):
+    def _next_move(self, connect4_board, prm_session):
 
-        if prt_str is None:
-            prt_str = (
+        if self.prt_str is None:
+            self.prt_str = (
                 self.color + "Player {}'s next move: ".format(self.no) + Fore.RESET
             )
 
         try:
-            inp = prm_session.prompt(ANSI(prt_str))
-            stdout.write("\x1b[1A")
-            stdout.write("\x1b[2K")
+            inp = "-1"
+
+            g = gevent.spawn(self._threaded_time_remaining)
+            inp = prm_session.prompt(self._input_prompt, refresh_interval=0.5)
+
+            if g.started:
+                g.kill()
+
+            if inp is None:
+                inp = randint(1, 7)
+                while not connect4_board.is_valid(inp):
+                    inp = randint(1, 7)
+                inp = str(inp)
 
             move = int(inp)
             if not connect4_board.is_valid(move):
@@ -120,14 +126,15 @@ class HumanPlayer(Player):
             handled = self._input_handler(inp=inp, connect4_board=connect4_board)
             if handled:
                 exit()
-            move = self._next_move(
-                connect4_board=connect4_board,
-                prm_session=prm_session,
-                prt_str=Fore.CYAN
+            self.prt_str = (
+                Fore.CYAN
                 + "Wrong input `{}`, please try again. ".format(inp)
                 + self.color
                 + "Player {}'s next move: ".format(self.no)
-                + Fore.RESET,
+                + Fore.RESET
+            )
+            move = self._next_move(
+                connect4_board=connect4_board, prm_session=prm_session
             )
 
         return move
@@ -177,6 +184,23 @@ class HumanPlayer(Player):
             return True
 
         return False
+
+    def _threaded_time_remaining(self):
+
+        while self.time_remaining > 0:
+            self.time_remaining = (
+                self.time_limit - (datetime.datetime.now() - self.start_time).seconds
+            )
+            gevent.sleep(0)
+
+        get_app().exit()
+
+    def _input_prompt(self):
+
+        r = ANSI("{} ".format(self.time_remaining) + self.prt_str)
+        gevent.sleep(0)
+
+        return r
 
     def game_finished(self, connect4_board, won: bool):
 
@@ -277,7 +301,7 @@ class NetworkPlayer(Player):
 
             data = json.dumps(data).encode()
 
-            sock = socket.socket(type=socket.SOCK_DGRAM)
+            sock = gevent.socket.socket(type=gevent.socket.SOCK_DGRAM)
             sock.connect((address, port))
             sock.send(data)
             sock.close()
@@ -286,7 +310,6 @@ class NetworkPlayer(Player):
 
         super(NetworkPlayer, self).__init__(*args, **kwargs)
 
-        self.type = Agents.NetworkPlayer
         self.latest_connect4_board = None
 
         self.peer_address = peer_address
@@ -327,7 +350,7 @@ class NetworkPlayer(Player):
 
         while True:
             while self.server.latest_recieved_move is None:
-                sleep(1)
+                gevent.sleep(0)
 
             nxt_mv = self.server.latest_recieved_move
             self.server.latest_recieved_move = None
@@ -372,7 +395,7 @@ class NetworkPlayer(Player):
 
 def RandomPlayer(*args, **kwargs):
 
-    return Random.choice([ComputerPlayer])(*args, **kwargs)
+    return choice([ComputerPlayer])(*args, **kwargs)
 
 
 agents = {

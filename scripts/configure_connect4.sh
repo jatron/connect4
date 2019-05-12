@@ -14,7 +14,7 @@ if ! which pip3 > /dev/null; then
     sudo apt install python3-pip
 fi
 
-pip3 install colorama docopt gevent loguru prompt_toolkit tinydb ujson
+pip3 install colorama docopt gevent loguru numpy prompt_toolkit tinydb ujson
 
 echo "Installed required python packages succesfully."
 
