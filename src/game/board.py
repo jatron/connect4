@@ -218,3 +218,8 @@ class ConnectFourBoard(object):
 
     def delete_board_from_stdout(self):
         system("clear")  # not sure if this is exactlty what we want
+
+    def get_height(self, column):
+        grid_transp = np.transpose(self.current_grid_state)
+        d = len(np.nonzero(grid_transp[column-1])[0])
+        return d
