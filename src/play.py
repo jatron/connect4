@@ -1,9 +1,9 @@
 __doc__ = """
 Play connect four in the comfort of your terminal.
 
-Player types are COMPUTERPLAYER, HUMANPLAYER, and NETWORKPLAYER.
+Player types are HUMANPLAYER, NETWORKPLAYER, and COMPUTERPLAYER.
 Ports and address are only used in network games.
-When playing as a HUMANPLAYER, you can input `save <savefile>` to save the game and `exit` your client or exit to exit your client.
+When playing as a HUMANPLAYER, you can input `save <savefile>` to save the game and exit your client or `exit` to exit your client.
 
 Usage:
   play.py [--debugging] [--verbose] load <savefile>
@@ -88,10 +88,10 @@ if __name__ == "__main__":
         with open(data["player2"], "rb") as p2:
             player2 = pickle.load(p2)
 
-        if data["current_player"] == 1:  # TODO, Fix numbering
-            current_player = player2
-        else:
+        if data["current_player"] == 1:
             current_player = player1
+        else:
+            current_player = player2
         initial_state = np.array(data["board"], dtype=int)
 
         db.close()
@@ -101,7 +101,7 @@ if __name__ == "__main__":
             player2=player2,
             current_player=current_player,
             initial_state=initial_state,
-        )
+        ).start_game_loop()
 
     elif args["vs"]:
 
@@ -152,4 +152,4 @@ if __name__ == "__main__":
             )
             exit(__doc__)
 
-        ConnectFourBoard(player1=player1, player2=player2)
+        ConnectFourBoard(player1=player1, player2=player2).start_game_loop()

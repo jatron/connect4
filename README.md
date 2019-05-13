@@ -33,6 +33,7 @@ Connect Four is a two-player connection game in which the players first choose a
 - Python module `docopt`
 - Python module `gevent`
 - Python module `loguru`
+- Python module `numpy`
 - Python module `prompt_toolkit`
 - Python module `tinydb`
 - Python module `ujson`
@@ -71,9 +72,9 @@ Connect Four is a two-player connection game in which the players first choose a
 ```
 Play connect four in the comfort of your terminal.
 
-Player types are COMPUTERPLAYER, HUMANPLAYER, and NETWORKPLAYER.
+Player types are HUMANPLAYER, NETWORKPLAYER, and COMPUTERPLAYER.
 Ports and address are only used in network games.
-When playing as a HUMANPLAYER, you can input `save <savefile>` to save the game and `exit` your client or exit to exit your client.
+When playing as a HUMANPLAYER, you can input `save <savefile>` to save the game and exit your client or `exit` to exit your client.
 
 Usage:
   play.py [--debugging] [--verbose] load <savefile>

@@ -58,7 +58,6 @@ class Player(object):
 
 
 class ComputerPlayer(Player):
-
     def next_move(self, connect4_board):
 
         raise NotImplementedError
@@ -69,7 +68,6 @@ class ComputerPlayer(Player):
 
 
 class HumanPlayer(Player):
-
     def next_move(self, connect4_board):
 
         connect4_board.print_board()
@@ -145,9 +143,8 @@ class HumanPlayer(Player):
         inp = inp.split(" ")
         if inp[0] == "save" and len(inp) == 2:
 
-            if (
-                connect4_board.player1.type is Agents.NetworkPlayer
-                or connect4_board.player2.type is Agents.NetworkPlayer
+            if isinstance(connect4_board.player1, NetworkPlayer) or isinstance(
+                connect4_board.player2, NetworkPlayer
             ):
 
                 connect4_board.delete_board_from_stdout()
@@ -329,7 +326,7 @@ class NetworkPlayer(Player):
         self.latest_sent_message = [
             {
                 "type": NetworkPlayer.Data.Move.value,
-                "content": connect4_board.next_move,
+                "content": connect4_board.latest_move,
             },
             {
                 "type": NetworkPlayer.Data.Board.value,
@@ -371,7 +368,7 @@ class NetworkPlayer(Player):
             {"type": NetworkPlayer.Data.Null.value, "content": None},
             {
                 "type": NetworkPlayer.Data.Move.value,
-                "content": connect4_board.next_move,
+                "content": connect4_board.latest_move,
             },
             {
                 "type": NetworkPlayer.Data.Board.value,
