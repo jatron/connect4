@@ -17,7 +17,17 @@ def check_color(x):
 
 def check_consecutive_indices(l):
     d = np.diff(l) == 1
-    return sum(d) >= 3
+    cnt = 0
+    for i in range(0, len(d)):  # [True True False True] for example --> should return False
+        if d[i] == 1:
+            cnt = cnt + 1
+        else:
+            cnt = 0
+
+    if cnt >= 3:
+        return True
+    else:
+        return False
 
 
 # returns True if there're 4 consecutive 1's or 2's (hence if a player wins)
@@ -150,7 +160,7 @@ class ConnectFourBoard(object):
                 move = self.player1.next_move(self.current_grid_state)
                 if self.make_move(move):
                     if self.check_board_for_a_win(self.current_grid_state):
-                        self.game_ended=True
+                        self.game_ended = True
                     else:
                         self.current_player = self.player2
             else:
@@ -160,7 +170,6 @@ class ConnectFourBoard(object):
                         self.game_ended = True
                     else:
                         self.current_player = self.player1
-
 
     '''
     Board should look like this: (with red and yellow 'O's)
