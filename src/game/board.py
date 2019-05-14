@@ -118,7 +118,7 @@ class ConnectFourBoard(object):
         self.player2 = player2
 
         if current_player is None:
-            current_player = player2  # initially
+            current_player = player1  # initially
         self.current_player = current_player
 
         if initial_state is None:
@@ -128,7 +128,73 @@ class ConnectFourBoard(object):
         self.next_move = None  # a number in the range [1,7] indicating the coloumn the player decides to play in
         self.game_ended = False  # becomes true when a winning state is found
         self.winner = None
+        self.latest_move = None
         self.toggle_players_and_get_next_move()
+
+    def copy(self):
+        return ConnectFourBoard(player1=self.player1, player2=self.player2, current_player=self.current_player,
+                                initial_state=self.current_grid_state.copy())
+
+    def start_game_loop(self):
+
+        while not self.is_finished():
+
+            move = self._get_next_move()
+            if self.is_valid(move):
+                self.make_move(move)
+                self.latest_move = move
+                self.toggle_players()
+
+        if self.current_player == self.player2:
+            self.player1.game_finished(connect4_board=self, won=True)
+            self.player2.game_finished(connect4_board=self, won=False)
+
+        elif self.current_player == self.player1:
+            self.player1.game_finished(connect4_board=self, won=False)
+            self.player2.game_finished(connect4_board=self, won=True)
+
+    def is_finished(self):
+
+        cnt_nonzero = len(np.nonzero(self.current_grid_state)[0])
+
+        if cnt_nonzero > 6:  # only at the seventh game does the probability of a win appear
+            if (horizontal_four(self.current_grid_state) or vertical_four(self.current_grid_state) or diagonal_four(
+                    self.current_grid_state)):
+                return True
+
+        return False
+
+    def is_winning_move(self, move):
+
+        fake_board = self.current_grid_state.copy()
+        fake_board[self.get_height(move)][move - 1] = self.current_player.no
+        cnt_nonzero = len(np.nonzero(fake_board)[0])
+        if cnt_nonzero > 6:  # only at the seventh game does the probability of a win appear
+            if (horizontal_four(fake_board)
+                    or vertical_four(fake_board)
+                    or diagonal_four(fake_board)):
+                return True
+
+        return False
+
+    def toggle_players(self):
+
+        if self.current_player == self.player1:
+            self.current_player = self.player2
+        else:
+            self.current_player = self.player1
+
+    def make_move(self, move):
+
+        for row in range(5, -1, -1):
+            if self.current_grid_state[row][move-1] == 0:
+                self.current_grid_state[row][move-1] = self.current_player.no
+                break
+
+    def _get_next_move(self):
+
+        return self.current_player.next_move(self)
+
 
     #  returns True if a winning state was found and sets the winner to the current player as well as a game ended flag
     def check_board_for_a_win(self, current_grid_state):
@@ -148,24 +214,6 @@ class ConnectFourBoard(object):
                 return True
         self.toggle_players_and_get_next_move()
         return False
-
-    def make_move(self, column_num):
-        switch_turns = False
-        if move_is_valid(column_num):
-            if self.current_player == self.player1:
-                disk_to_be_inserted = 1
-            else:
-                disk_to_be_inserted = 2
-
-            row_index = get_row_for_move(column_num, self.current_grid_state)
-            if row_index != -1:
-                self.current_grid_state[row_index][column_num - 1] = disk_to_be_inserted
-                switch_turns = True
-            else:
-                print(Fore.RED + "This column is already full! :o")
-                switch_turns = False
-
-        return switch_turns
 
     def toggle_players_and_get_next_move(self):
         # toggle players
