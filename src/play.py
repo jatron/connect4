@@ -1,15 +1,19 @@
 __doc__ = """
 Play connect four in the comfort of your terminal.
 
-Player types are HUMANPLAYER, NETWORKPLAYER, and COMPUTERPLAYER.
+Player types are HUMANPLAYER, NETWORKPLAYER, and MINIMAXPLAYER.
+Player difficulties are HARD, NORMAL, and EASY.
 Ports and address are only used in network games.
+Player difficulties are only used in case of using an AI.
 When playing as a HUMANPLAYER, you can input `save <savefile>` to save the game and exit your client or `exit` to exit your client.
 
 Usage:
   play.py [--debugging] [--verbose] load <savefile>
-  play.py [--time-limit=TIMEINSECONDS] [--local-port=PORT]
-          [--peer-address=ADDRESS] [--peer-port=PORT] [--debugging]
-          [--verbose] <playertype> vs <playertype>
+  play.py [--time-limit=TIMEINSECONDS]
+          [--local-port=PORT] [--peer-address=ADDRESS] [--peer-port=PORT]
+          [--debugging] [--verbose]
+          [--p1-difficulty=DIFFICULTY] [--p2-difficulty=DIFFICULTY]
+          <playertype> vs <playertype>
   play.py (-h | --help)
 
 Options:
@@ -18,6 +22,8 @@ Options:
   --local-port=PORT           Local port [default: 3500].
   --peer-address=ADDRESS      Peer player's IP address.
   --peer-port=PORT            Peer player's port [default: 3500].
+  --p1-difficulty=DIFFICULTY  First player difficulty [default: NORMAL].
+  --p2-difficulty=DIFFICULTY  Second player difficulty [default: NORMAL].
   -d --debugging              Save debugging log.
   -v --verbose                Turn on verbose output mode.
 """
@@ -34,14 +40,7 @@ from tinydb.middlewares import CachingMiddleware
 from tinydb.storages import JSONStorage
 import numpy as np
 
-from game.agents import (
-    Agents,
-    ComputerPlayer,
-    HumanPlayer,
-    NetworkPlayer,
-    RandomPlayer,
-    agents,
-)
+from game.agents import Agents, Difficulty, RandomPlayer, agents
 from game.board import ConnectFourBoard
 
 
@@ -112,6 +111,17 @@ if __name__ == "__main__":
                 Agents(args["<playertype>"][1]),
             )
 
+            try:
+                if player1 not in [Agents.HumanPlayer, Agents.NetworkPlayer]:
+                    diff1 = Difficulty(args["--p1-difficulty"])
+                    diff2 = Difficulty(args["--p2-difficulty"])
+                elif player2 not in [Agents.HumanPlayer, Agents.NetworkPlayer]:
+                    diff1 = Difficulty(args["--p1-difficulty"])
+                    diff2 = Difficulty(args["--p2-difficulty"])
+            except:
+                logger.error("You must enter a correct difficulty.")
+                raise ValueError
+
             if player1 is Agents.NetworkPlayer and player2 is Agents.NetworkPlayer:
                 logger.error("You must have at lease one local player.")
                 raise ValueError
@@ -140,6 +150,18 @@ if __name__ == "__main__":
                         no=2,
                         time_limit=time_limit,
                     )
+            elif player1 not in [
+                Agents.HumanPlayer,
+                Agents.NetworkPlayer,
+            ] and player2 not in [Agents.HumanPlayer, Agents.NetworkPlayer]:
+                player1 = agents[player1](no=1, time_limit=time_limit, difficulty=diff1)
+                player2 = agents[player2](no=2, time_limit=time_limit, difficulty=diff2)
+            elif player1 not in [Agents.HumanPlayer, Agents.NetworkPlayer]:
+                player1 = agents[player1](no=1, time_limit=time_limit, difficulty=diff1)
+                player2 = agents[player2](no=2, time_limit=time_limit)
+            elif player2 not in [Agents.HumanPlayer, Agents.NetworkPlayer]:
+                player1 = agents[player1](no=1, time_limit=time_limit)
+                player2 = agents[player2](no=2, time_limit=time_limit, difficulty=diff2)
             else:
                 player1 = agents[player1](no=1, time_limit=time_limit)
                 player2 = agents[player2](no=2, time_limit=time_limit)
@@ -147,7 +169,7 @@ if __name__ == "__main__":
         except:
             print(
                 Fore.RED
-                + "You must have at lease one local player.\nYou must enter the peer player's IP address to play a network game."
+                + "You must have at lease one local player.\nYou must enter a correct difficulty.\nYou must enter the peer player's IP address to play a network game."
                 + Fore.RESET
             )
             exit(__doc__)
