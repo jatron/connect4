@@ -29,7 +29,7 @@ Options:
 """
 
 
-from sys import stdout
+from sys import exit, stdout
 import pickle
 
 from colorama import Fore
