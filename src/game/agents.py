@@ -1,5 +1,5 @@
 from enum import Enum
-from random import choice, randint
+from random import choice, randint, shuffle
 from sys import stdout
 import datetime
 import pickle
@@ -23,9 +23,16 @@ import ujson as json
 
 class Agents(Enum):
 
-    ComputerPlayer = "COMPUTERPLAYER"
     HumanPlayer = "HUMANPLAYER"
     NetworkPlayer = "NETWORKPLAYER"
+    MiniMaxPlayer = "MINIMAXPLAYER"
+
+
+class Difficulty(Enum):
+
+    EASY = "EASY"
+    NORMAL = "NORMAL"
+    HARD = "HARD"
 
 
 class Player(object):
@@ -57,14 +64,199 @@ class Player(object):
         raise NotImplementedError
 
 
-class ComputerPlayer(Player):
+class MiniMaxPlayer(Player):
+    def __init__(self, difficulty=Difficulty.NORMAL, *args, **kwargs):
+
+        super(MiniMaxPlayer, self).__init__(*args, **kwargs)
+
+        if difficulty == Difficulty.EASY:
+            self.depth = 5
+        elif difficulty == Difficulty.NORMAL:
+            self.depth = 6
+        elif difficulty == Difficulty.HARD:
+            self.depth = 7
+
+        self.max_depth = 0
+
     def next_move(self, connect4_board):
 
-        raise NotImplementedError
+        self.branching_factors = []
+        self.leafs = []
+        self.cut_offs = []
+        self.move_time_limit = datetime.datetime.now() + datetime.timedelta(
+            seconds=self.time_limit - 1
+        )
+        move, _ = self._minimax(
+            connect4_board=connect4_board, alpha=float("-inf"), beta=float("inf")
+        )
+
+        logger.bind(verbose=True).debug("Max depth: {}".format(self.max_depth))
+        logger.bind(verbose=True).debug(
+            "Avr. branching factor: {}".format(
+                np.mean(np.array(self.branching_factors, dtype=int))
+            )
+        )
+        logger.bind(verbose=True).debug(
+            "{} leafs explored with utils: {}".format(
+                len(self.leafs), ", ".join([str(item) for item in self.leafs])
+            )
+        )
+        logger.bind(verbose=True).debug(
+            "{} cutoffs at depth: {}".format(
+                len(self.cut_offs), ", ".join([str(item) for item in self.cut_offs])
+            )
+        )
+
+        return move
+
+    def _minimax(self, connect4_board, alpha, beta, depth=0):
+
+        if depth > self.max_depth:
+            self.max_depth = depth
+
+        if (
+            depth >= self.depth
+            or datetime.datetime.now() > self.move_time_limit
+            or connect4_board.is_finished()
+        ):
+            util_value = self._util(connect4_board)
+            self.leafs.append(util_value)
+            return None, util_value
+
+        moves = [
+            move
+            for move in range(1, len(connect4_board.current_grid_state[0]) + 1)
+            if connect4_board.is_valid(move)
+        ]
+        branching_factor = 0
+
+        if connect4_board.current_player is self:
+            b_move, reval = None, float("-inf")
+
+            for move in moves:
+                branching_factor += 1
+
+                t = connect4_board.copy()
+                t.make_move(move)
+                t.toggle_players()
+
+                _, eval = self._minimax(t, alpha, beta, depth + 1)
+
+                if eval > reval:
+                    b_move = move
+                    reval = max(eval, reval)
+
+                alpha = max(alpha, reval)
+                if beta <= alpha:
+                    self.cut_offs.append(depth)
+                    break
+        else:
+            b_move, reval = None, float("inf")
+
+            for move in moves:
+                branching_factor += 1
+
+                t = connect4_board.copy()
+                t.make_move(move)
+                t.toggle_players()
+
+                _, eval = self._minimax(t, alpha, beta, depth + 1)
+
+                if eval < reval:
+                    b_move = move
+                    reval = min(eval, reval)
+
+                beta = min(beta, reval)
+                if beta <= alpha:
+                    self.cut_offs.append(depth)
+                    break
+
+        self.branching_factors.append(branching_factor)
+        return b_move, reval
+
+    def _util(self, connect4_board):
+        def row_streak(row, player_no, streak):
+
+            score = 0
+
+            if len(row) >= streak:
+                for i in range(len(row) - streak + 1):
+                    true_streak = True
+                    for no in range(streak):
+                        if row[i + no] != player_no:
+                            true_streak = False
+                            break
+                    if true_streak:
+                        score += 1
+
+            return score
+
+        def diag_streak(board, player_no, streak=4):
+
+            score = 0
+
+            for i in range(0, -len(board), -1):
+                score += row_streak(np.diagonal(board, i), player_no, streak)
+            for i in range(1, len(board[0])):
+                score += row_streak(np.diagonal(board, i), player_no, streak)
+
+            return score
+
+        def horz_streak(board, player_no, streak=4):
+
+            score = 0
+
+            for i in range(len(board)):
+                score += row_streak(board[i], player_no, streak)
+
+            return score
+
+        def vert_streak(board, player_no, streak=4):
+
+            return horz_streak(np.transpose(board), player_no, streak)
+
+        def streak(board, player_no, streak=4):
+
+            return (
+                diag_streak(board, player_no, streak)
+                + horz_streak(board, player_no, streak)
+                + vert_streak(board, player_no, streak)
+            )
+
+        if connect4_board.current_player is self:
+            player_no = connect4_board.current_player.no
+            if player_no == connect4_board.player1.no:
+                enemy_no = connect4_board.player2.no
+            else:
+                enemy_no = connect4_board.player1.no
+
+        else:
+            enemy_no = connect4_board.current_player.no
+            if enemy_no == connect4_board.player1.no:
+                player_no = connect4_board.player2.no
+            else:
+                player_no = connect4_board.player1.no
+
+        p4streaks = streak(connect4_board.current_grid_state, player_no, 4)
+        p3streaks = streak(connect4_board.current_grid_state, player_no, 3)
+        p2streaks = streak(connect4_board.current_grid_state, player_no, 2)
+        e4streaks = streak(connect4_board.current_grid_state, enemy_no, 4)
+
+        return (
+            1024 * 1024 * p4streaks
+            + 1024 * p3streaks
+            + p2streaks
+            - 1024 * 1024 * 1024 * e4streaks
+        )
 
     def game_finished(self, connect4_board, won: bool):
 
-        raise NotImplementedError
+        connect4_board.print_board()
+
+        if won:
+            logger.bind(verbose=True).success("AI {} have won.".format(self.no))
+        else:
+            logger.bind(verbose=True).success("AI {} have lost.".format(self.no))
 
 
 class HumanPlayer(Player):
@@ -396,7 +588,7 @@ def RandomPlayer(*args, **kwargs):
 
 
 agents = {
-    Agents.ComputerPlayer: ComputerPlayer,
     Agents.HumanPlayer: HumanPlayer,
     Agents.NetworkPlayer: NetworkPlayer,
+    Agents.MiniMaxPlayer: MiniMaxPlayer,
 }
