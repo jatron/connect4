@@ -1,3 +1,5 @@
+from sys import stdout
+
 from colorama import Fore, Back, Style
 import numpy as np
 from os import system
@@ -112,29 +114,40 @@ class ConnectFourBoard(object):
     '''
 
     def __init__(self, player1, player2, current_player, initial_state=None):
-        self.player1 = HumanPlayer()
-        self.player2 = ComputerPlayer()
-        self.current_player = player1  # initially
-        initial_state = np.zeros((6, 7), dtype=int)  # grid size of the connect four game is 6*7
+        self.player1 = player1
+        self.player2 = player2
+
+        if current_player is None:
+            current_player = player2  # initially
+        self.current_player = current_player
+
+        if initial_state is None:
+            initial_state = np.zeros((6, 7), dtype=int)  # grid size of the connect four game is 6*7
         self.current_grid_state = initial_state  # All zeros
+
         self.next_move = None  # a number in the range [1,7] indicating the coloumn the player decides to play in
         self.game_ended = False  # becomes true when a winning state is found
         self.winner = None
+        self.toggle_players_and_get_next_move()
 
     #  returns True if a winning state was found and sets the winner to the current player as well as a game ended flag
     def check_board_for_a_win(self, current_grid_state):
-        cnt_nonzero = len(np.nonzero(current_grid_state)[0])
+        cnt_nonzero = len(np.nonzero(self.current_grid_state)[0])
         if cnt_nonzero > 6:  # only at the seventh game does the probability of a win appear
-            if (horizontal_four(current_grid_state)
-                    or vertical_four(current_grid_state)
-                    or diagonal_four(current_grid_state)):
+            if (horizontal_four(self.current_grid_state)
+                    or vertical_four(self.current_grid_state)
+                    or diagonal_four(self.current_grid_state)):
                 self.game_ended = True
                 self.winner = self.current_player
+                if self.current_player == self.player1:
+                    self.player1.game_finished(connect4_board=self, won=True)
+                    self.player2.game_finished(connect4_board=self, won=False)
+                elif self.current_player == self.player2:
+                    self.player1.game_finished(connect4_board=self, won=False)
+                    self.player2.game_finished(connect4_board=self, won=True)
                 return True
-            else:
-                return False
-        else:
-            return False
+        self.toggle_players_and_get_next_move()
+        return False
 
     def make_move(self, column_num):
         switch_turns = False
@@ -155,21 +168,21 @@ class ConnectFourBoard(object):
         return switch_turns
 
     def toggle_players_and_get_next_move(self):
-        while not self.game_ended:
-            if self.current_player == self.player1:  # Human player
-                move = self.player1.next_move(self.current_grid_state)
-                if self.make_move(move):
-                    if self.check_board_for_a_win(self.current_grid_state):
-                        self.game_ended = True
-                    else:
-                        self.current_player = self.player2
-            else:
-                move = self.player2.next_move(self.current_grid_state)
-                if self.make_move(move):
-                    if self.check_board_for_a_win(self.current_grid_state):
-                        self.game_ended = True
-                    else:
-                        self.current_player = self.player1
+        # toggle players
+        if self.current_player == self.player1:
+            self.current_player = self.player2
+        else:
+            self.current_player = self.player1
+
+        # get the next move (still to be improved/removed)
+        # print(Fore.GREEN + "It's player ", self.current_player, "\'s turn:")
+        # prompting the user to enter their next move which is the number of coloumn at which they wish to play
+        self.next_move = self.current_player.next_move(self)
+        for row in range(5, -1, -1):
+            if self.current_grid_state[row][self.next_move - 1] == 0:
+                self.current_grid_state[row][self.next_move - 1] = self.current_player.no
+                break
+        self.check_board_for_a_win()
 
     '''
     Board should look like this: (with red and yellow 'O's)
@@ -217,9 +230,16 @@ class ConnectFourBoard(object):
             print(frame)
 
     def delete_board_from_stdout(self):
-        system("clear")  # not sure if this is exactlty what we want
+        for i in range(14):
+            stdout.write('\x1b[1A')
+            stdout.write('\x1b[2K')
 
     def get_height(self, column):
         grid_transp = np.transpose(self.current_grid_state)
-        d = len(np.nonzero(grid_transp[column-1])[0])
+        d = len(np.nonzero(grid_transp[column - 1])[0])
         return d
+
+    def is_valid(self, move):
+        if self.current_grid_state[0][move - 1] == 0:
+            return True
+        return False
