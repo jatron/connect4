@@ -16,6 +16,7 @@
 - [Environment Configuration](#environment-configuration)
 - [Usage](#usage)
 - [Advanced Usage](#advanced-usage)
+- [Additional Info](#additional-info)
 
 ---
 
@@ -35,6 +36,7 @@ Connect Four is a two-player connection game in which the players first choose a
 - Python module `loguru`
 - Python module `numpy`
 - Python module `prompt_toolkit`
+- Python module `pyinstaller`
 - Python module `tinydb`
 - Python module `ujson`
 <br>
@@ -65,6 +67,12 @@ Connect Four is a two-player connection game in which the players first choose a
   ```bash
   python3 ./src/play.py HUMANPLAYER vs NETWORKPLAYER --local-port=3500 --peer-address=127.0.0.1 --peer-port=3501
   ```
+
+3. Try to beat the hard AI
+
+  ```bash
+  python3 ./src/play.py HUMANPLAYER vs MINMAXPLAYER --p2-difficulty=HARD
+  ```
 <br>
 
 ## Advanced Usage
@@ -72,15 +80,19 @@ Connect Four is a two-player connection game in which the players first choose a
 ```
 Play connect four in the comfort of your terminal.
 
-Player types are HUMANPLAYER, NETWORKPLAYER, and COMPUTERPLAYER.
+Player types are HUMANPLAYER, NETWORKPLAYER, and MINIMAXPLAYER.
+Player difficulties are HARD, NORMAL, and EASY.
 Ports and address are only used in network games.
+Player difficulties are only used in case of using an AI.
 When playing as a HUMANPLAYER, you can input `save <savefile>` to save the game and exit your client or `exit` to exit your client.
 
 Usage:
   play.py [--debugging] [--verbose] load <savefile>
-  play.py [--time-limit=TIMEINSECONDS] [--local-port=PORT]
-          [--peer-address=ADDRESS] [--peer-port=PORT] [--debugging]
-          [--verbose] <playertype> vs <playertype>
+  play.py [--time-limit=TIMEINSECONDS]
+          [--local-port=PORT] [--peer-address=ADDRESS] [--peer-port=PORT]
+          [--debugging] [--verbose]
+          [--p1-difficulty=DIFFICULTY] [--p2-difficulty=DIFFICULTY]
+          <playertype> vs <playertype>
   play.py (-h | --help)
 
 Options:
@@ -89,10 +101,17 @@ Options:
   --local-port=PORT           Local port [default: 3500].
   --peer-address=ADDRESS      Peer player's IP address.
   --peer-port=PORT            Peer player's port [default: 3500].
+  --p1-difficulty=DIFFICULTY  First player difficulty [default: NORMAL].
+  --p2-difficulty=DIFFICULTY  Second player difficulty [default: NORMAL].
   -d --debugging              Save debugging log.
   -v --verbose                Turn on verbose output mode.
 ```
+<br>
 
+## Additional Info
+
+Used util function is:
+$1024 * 1024 * Streak_4 + 1024 * Streak_3 + Streak_2 - 1024 * 1024 * 1024 * OpponentStreak_4$
 <br>
 
 <br>
