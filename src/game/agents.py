@@ -76,12 +76,17 @@ class MiniMaxPlayer(Player):
         elif difficulty == Difficulty.HARD:
             self.depth = 7
 
-        self.max_depth = 0
+        if self.no == 1:
+            self.current_depth = 0
+        elif self.no == 2:
+            self.current_depth = 1
 
     def next_move(self, connect4_board):
 
+        connect4_board.print_board()
+        self.max_depth = 0
         self.branching_factors = []
-        self.leafs = []
+        self.leaves = []
         self.cut_offs = []
         self.move_time_limit = datetime.datetime.now() + datetime.timedelta(
             seconds=self.time_limit - 1
@@ -89,23 +94,28 @@ class MiniMaxPlayer(Player):
         move, _ = self._minimax(
             connect4_board=connect4_board, alpha=float("-inf"), beta=float("inf")
         )
+        connect4_board.delete_board_from_stdout()
 
-        logger.bind(verbose=True).debug("Max depth: {}".format(self.max_depth))
+        logger.bind(verbose=True).debug("Max depth: {}".format(self.current_depth + self.max_depth))
         logger.bind(verbose=True).debug(
             "Avr. branching factor: {}".format(
                 np.mean(np.array(self.branching_factors, dtype=int))
             )
         )
         logger.bind(verbose=True).debug(
-            "{} leafs explored with utils: {}".format(
-                len(self.leafs), ", ".join([str(item) for item in self.leafs])
+            "{} leaves explored with utils: {}".format(
+                len(self.leaves), ", ".join([str(item) for item in self.leaves])
             )
         )
         logger.bind(verbose=True).debug(
-            "{} cutoffs at depth: {}".format(
-                len(self.cut_offs), ", ".join([str(item) for item in self.cut_offs])
+            "{} cutoffs - (depth, count): {}".format(
+                len(self.cut_offs), ", ".join([str(item) for item in [(level+self.current_depth, self.cut_offs.count(level)) for level in set(self.cut_offs)]])
             )
         )
+        logger.bind(verbose=True).debug(
+            "AI {}'ve played into column {}.".format(self.no, move))
+
+        self.current_depth += 2
 
         return move
 
@@ -120,7 +130,7 @@ class MiniMaxPlayer(Player):
             or connect4_board.is_finished()
         ):
             util_value = self._util(connect4_board)
-            self.leafs.append(util_value)
+            self.leaves.append(util_value)
             return None, util_value
 
         moves = [
@@ -130,8 +140,13 @@ class MiniMaxPlayer(Player):
         ]
         branching_factor = 0
 
+        try:
+            b_move = moves[0]
+        except:
+            b_move = None
+
         if connect4_board.current_player is self:
-            b_move, reval = None, float("-inf")
+            reval = float("-inf")
 
             for move in moves:
                 branching_factor += 1
@@ -151,7 +166,7 @@ class MiniMaxPlayer(Player):
                     self.cut_offs.append(depth)
                     break
         else:
-            b_move, reval = None, float("inf")
+            reval = float("inf")
 
             for move in moves:
                 branching_factor += 1
