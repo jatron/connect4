@@ -263,3 +263,8 @@ class ConnectFourBoard(object):
         grid_transp = np.transpose(self.current_grid_state)
         d = len(np.nonzero(grid_transp[column - 1])[0])
         return d
+
+    def is_valid(self, move):
+        if self.current_grid_state[0][move - 1] == 0:
+            return True
+        return False
