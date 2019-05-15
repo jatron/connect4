@@ -113,22 +113,27 @@ class ConnectFourBoard(object):
                                 initial_state=self.current_grid_state.copy())
 
     def start_game_loop(self):
-
+        tie = False
         while not self.is_finished():
+            if self.is_full():  # game not finished (no one won) but grid is all full
+                tie = True
+                break
+            else:
+                move = self._get_next_move()
+                if self.is_valid(move):
+                    self.make_move(move)
+                    self.latest_move = move
+                    self.toggle_players()
+        if not tie:
+            if self.current_player == self.player2:
+                self.player1.game_finished(connect4_board=self, won=True)
+                self.player2.game_finished(connect4_board=self, won=False)
 
-            move = self._get_next_move()
-            if self.is_valid(move):
-                self.make_move(move)
-                self.latest_move = move
-                self.toggle_players()
-
-        if self.current_player == self.player2:
-            self.player1.game_finished(connect4_board=self, won=True)
-            self.player2.game_finished(connect4_board=self, won=False)
-
-        elif self.current_player == self.player1:
-            self.player1.game_finished(connect4_board=self, won=False)
-            self.player2.game_finished(connect4_board=self, won=True)
+            elif self.current_player == self.player1:
+                self.player1.game_finished(connect4_board=self, won=False)
+                self.player2.game_finished(connect4_board=self, won=True)
+        else:
+            print(Fore.WHITE + "It's a tie, no one won!" + Fore.RESET)
 
     def is_finished(self):
 
@@ -139,8 +144,12 @@ class ConnectFourBoard(object):
                     or vertical_four(self.current_grid_state)
                     or diagonal_four(self.current_grid_state)):
                 return True
-
         return False
+
+    def is_full(self):
+        cnt_nonzero = len(np.nonzero(self.current_grid_state)[0])
+        if cnt_nonzero == 6 * 7:
+            return True
 
     def is_winning_move(self, move):
 
