@@ -53,13 +53,24 @@ Connect Four is a two-player connection game in which the players first choose a
 ## Usage
 
 1. Try two players in the same terminal
+
+  > If you're playing as HUMANPLAYER, you can save the game or forfeit it every time you are asked for input
+  >> Test it by writing `save savefile.c4`, `forfeit`, `end`, or `exit`
+
   ```bash
   python3 ./src/play.py HUMANPLAYER vs HUMANPLAYER
   ```
 
-2. Try two players on the same network(or pc)
+2. Try to load a saved game
+
+  ```bash
+  python3 ./src/play.py load savefile.c4
+  ```
+
+3. Try two players on the same network(or pc)
 
   > The instance with firstplayer=NETWORKPLAYER must be opened first.
+  >> [peterrateb/Intelligent-connect-4](https://github.com/peterrateb/Intelligent-connect-4) uses the same networking protocol, so you can even play across clients.
 
   ```bash
   python3 ./src/play.py NETWORKPLAYER vs HUMANPLAYER --local-port=3501 --peer-address=127.0.0.1 --peer-port=3500
@@ -68,7 +79,7 @@ Connect Four is a two-player connection game in which the players first choose a
   python3 ./src/play.py HUMANPLAYER vs NETWORKPLAYER --local-port=3500 --peer-address=127.0.0.1 --peer-port=3501
   ```
 
-3. Try to beat the hard AI
+4. Try to beat the hard AI
 
   ```bash
   python3 ./src/play.py HUMANPLAYER vs MINMAXPLAYER --p2-difficulty=HARD
@@ -111,7 +122,7 @@ Options:
 ## Additional Info
 
 Used util function is:
-$1024 * 1024 * Streak_4 + 1024 * Streak_3 + Streak_2 - 1024 * 1024 * 1024 * OpponentStreak_4$
+![](http://latex.codecogs.com/svg.latex?1024^2*Streak_4+1024*Streak_3+Streak_2-1024^3*OpponentStreak_4)
 <br>
 
 <br>
