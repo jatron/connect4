@@ -2,8 +2,6 @@ from sys import stdout
 
 from colorama import Fore, Back, Style
 import numpy as np
-from os import system
-from .agents import HumanPlayer, ComputerPlayer
 
 
 # for the print board function
@@ -89,23 +87,6 @@ def diagonal_four(grid):
         return False
 
 
-def move_is_valid(column_num):
-    if 1 <= column_num <= 7:
-        return True
-    else:
-        print(Fore.RED + "Wrong choice of coloumn!")
-
-
-def get_row_for_move(column_num, grid):
-    column_arr = grid[:, column_num - 1]
-    non_zero_indices = np.nonzero(column_arr)[0]
-    if len(non_zero_indices) is not 0:
-        row_index = non_zero_indices[len(non_zero_indices) - 1]  # The last non zero element
-    else:  # Column is already full
-        row_index = -1  # A flag meaning col is already full hence it's a wasted move
-    return row_index
-
-
 class ConnectFourBoard(object):
     '''
         Suppose the game is a numpy array of 6*7, initially all cells are filled with zeros
@@ -113,7 +94,7 @@ class ConnectFourBoard(object):
         when it's player 2's turn, a "2" is put into the cell
     '''
 
-    def __init__(self, player1, player2, current_player, initial_state=None):
+    def __init__(self, player1, player2, current_player=None, initial_state=None):
         self.player1 = player1
         self.player2 = player2
 
@@ -125,11 +106,7 @@ class ConnectFourBoard(object):
             initial_state = np.zeros((6, 7), dtype=int)  # grid size of the connect four game is 6*7
         self.current_grid_state = initial_state  # All zeros
 
-        self.next_move = None  # a number in the range [1,7] indicating the coloumn the player decides to play in
-        self.game_ended = False  # becomes true when a winning state is found
-        self.winner = None
         self.latest_move = None
-        self.toggle_players_and_get_next_move()
 
     def copy(self):
         return ConnectFourBoard(player1=self.player1, player2=self.player2, current_player=self.current_player,
@@ -158,8 +135,9 @@ class ConnectFourBoard(object):
         cnt_nonzero = len(np.nonzero(self.current_grid_state)[0])
 
         if cnt_nonzero > 6:  # only at the seventh game does the probability of a win appear
-            if (horizontal_four(self.current_grid_state) or vertical_four(self.current_grid_state) or diagonal_four(
-                    self.current_grid_state)):
+            if (horizontal_four(self.current_grid_state)
+                    or vertical_four(self.current_grid_state)
+                    or diagonal_four(self.current_grid_state)):
                 return True
 
         return False
@@ -187,14 +165,13 @@ class ConnectFourBoard(object):
     def make_move(self, move):
 
         for row in range(5, -1, -1):
-            if self.current_grid_state[row][move-1] == 0:
-                self.current_grid_state[row][move-1] = self.current_player.no
+            if self.current_grid_state[row][move - 1] == 0:
+                self.current_grid_state[row][move - 1] = self.current_player.no
                 break
 
     def _get_next_move(self):
 
         return self.current_player.next_move(self)
-
 
     #  returns True if a winning state was found and sets the winner to the current player as well as a game ended flag
     def check_board_for_a_win(self, current_grid_state):
@@ -286,8 +263,3 @@ class ConnectFourBoard(object):
         grid_transp = np.transpose(self.current_grid_state)
         d = len(np.nonzero(grid_transp[column - 1])[0])
         return d
-
-    def is_valid(self, move):
-        if self.current_grid_state[0][move - 1] == 0:
-            return True
-        return False
