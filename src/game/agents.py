@@ -1,6 +1,6 @@
 from enum import Enum
 from random import choice, randint, shuffle
-from sys import stdout
+from sys import exit, stdout
 import datetime
 import pickle
 
