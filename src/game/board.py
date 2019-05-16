@@ -1,6 +1,4 @@
-from sys import stdout
-
-from colorama import Fore, Back, Style
+from colorama import Fore
 import numpy as np
 
 
@@ -18,7 +16,9 @@ def check_color(x):
 def check_consecutive_indices(l):
     d = np.diff(l) == 1
     cnt = 0
-    for i in range(0, len(d)):  # [True True False True] for example --> should return False
+    for i in range(
+        0, len(d)
+    ):  # [True True False True] for example --> should return False
         if d[i] == 1:
             cnt = cnt + 1
         else:
@@ -33,8 +33,12 @@ def check_consecutive_indices(l):
 # returns True if there're 4 consecutive 1's or 2's (hence if a player wins)
 def check_win_from_row(row):
     if len(np.nonzero(row)[0]) != 0:
-        cnt_of_one = len(np.nonzero(row == 1)[0])  # get the number of occurrences of one
-        cnt_of_two = len(np.nonzero(row == 2)[0])  # get the number of occurrences of two
+        cnt_of_one = len(
+            np.nonzero(row == 1)[0]
+        )  # get the number of occurrences of one
+        cnt_of_two = len(
+            np.nonzero(row == 2)[0]
+        )  # get the number of occurrences of two
 
         if cnt_of_one >= 4:
             y_indices = np.nonzero(row == 1)[0]
@@ -78,7 +82,9 @@ def vertical_four(grid):
 # returns True for diagonal connect 4 winning state
 def diagonal_four(grid):
     # Check for the -45 degree diagonals
-    if check_diagonal_four(grid, -2, 3):  # from -2->3 thus excluding diagonals with less than 4 cells
+    if check_diagonal_four(
+        grid, -2, 3
+    ):  # from -2->3 thus excluding diagonals with less than 4 cells
         return True
     # Check for the +45 degree diagonals
     elif check_diagonal_four(np.fliplr(grid), -2, 3):
@@ -88,11 +94,11 @@ def diagonal_four(grid):
 
 
 class ConnectFourBoard(object):
-    '''
+    """
         Suppose the game is a numpy array of 6*7, initially all cells are filled with zeros
         when it's player 1's turn, a "1" is put into the cell
         when it's player 2's turn, a "2" is put into the cell
-    '''
+    """
 
     def __init__(self, player1, player2, current_player=None, initial_state=None):
         self.player1 = player1
@@ -103,14 +109,20 @@ class ConnectFourBoard(object):
         self.current_player = current_player
 
         if initial_state is None:
-            initial_state = np.zeros((6, 7), dtype=int)  # grid size of the connect four game is 6*7
+            initial_state = np.zeros(
+                (6, 7), dtype=int
+            )  # grid size of the connect four game is 6*7
         self.current_grid_state = initial_state  # All zeros
 
         self.latest_move = None
 
     def copy(self):
-        return ConnectFourBoard(player1=self.player1, player2=self.player2, current_player=self.current_player,
-                                initial_state=self.current_grid_state.copy())
+        return ConnectFourBoard(
+            player1=self.player1,
+            player2=self.player2,
+            current_player=self.current_player,
+            initial_state=self.current_grid_state.copy(),
+        )
 
     def start_game_loop(self):
         tie = False
@@ -139,10 +151,14 @@ class ConnectFourBoard(object):
 
         cnt_nonzero = len(np.nonzero(self.current_grid_state)[0])
 
-        if cnt_nonzero > 6:  # only at the seventh game does the probability of a win appear
-            if (horizontal_four(self.current_grid_state)
-                    or vertical_four(self.current_grid_state)
-                    or diagonal_four(self.current_grid_state)):
+        if (
+            cnt_nonzero > 6
+        ):  # only at the seventh game does the probability of a win appear
+            if (
+                horizontal_four(self.current_grid_state)
+                or vertical_four(self.current_grid_state)
+                or diagonal_four(self.current_grid_state)
+            ):
                 return True
         return False
 
@@ -156,10 +172,14 @@ class ConnectFourBoard(object):
         fake_board = self.current_grid_state.copy()
         fake_board[self.get_height(move)][move - 1] = self.current_player.no
         cnt_nonzero = len(np.nonzero(fake_board)[0])
-        if cnt_nonzero > 6:  # only at the seventh game does the probability of a win appear
-            if (horizontal_four(fake_board)
-                    or vertical_four(fake_board)
-                    or diagonal_four(fake_board)):
+        if (
+            cnt_nonzero > 6
+        ):  # only at the seventh game does the probability of a win appear
+            if (
+                horizontal_four(fake_board)
+                or vertical_four(fake_board)
+                or diagonal_four(fake_board)
+            ):
                 return True
 
         return False
@@ -185,10 +205,14 @@ class ConnectFourBoard(object):
     #  returns True if a winning state was found and sets the winner to the current player as well as a game ended flag
     def check_board_for_a_win(self, current_grid_state):
         cnt_nonzero = len(np.nonzero(self.current_grid_state)[0])
-        if cnt_nonzero > 6:  # only at the seventh game does the probability of a win appear
-            if (horizontal_four(self.current_grid_state)
-                    or vertical_four(self.current_grid_state)
-                    or diagonal_four(self.current_grid_state)):
+        if (
+            cnt_nonzero > 6
+        ):  # only at the seventh game does the probability of a win appear
+            if (
+                horizontal_four(self.current_grid_state)
+                or vertical_four(self.current_grid_state)
+                or diagonal_four(self.current_grid_state)
+            ):
                 self.game_ended = True
                 self.winner = self.current_player
                 if self.current_player == self.player1:
@@ -214,11 +238,13 @@ class ConnectFourBoard(object):
         self.next_move = self.current_player.next_move(self)
         for row in range(5, -1, -1):
             if self.current_grid_state[row][self.next_move - 1] == 0:
-                self.current_grid_state[row][self.next_move - 1] = self.current_player.no
+                self.current_grid_state[row][
+                    self.next_move - 1
+                ] = self.current_player.no
                 break
         self.check_board_for_a_win()
 
-    '''
+    """
     Board should look like this: (with red and yellow 'O's)
 
       1   2   3   4   5   6   7
@@ -235,7 +261,7 @@ class ConnectFourBoard(object):
     +---+---+---+---+---+---+---+
     |   +   +   + O + O + O +   |
     +---+---+---+---+---+---+---+
-    '''
+    """
 
     def print_board(self):
         frame = "+---+---+---+---+---+---+---+"
@@ -252,7 +278,7 @@ class ConnectFourBoard(object):
 
                 if self.current_grid_state[x, y] != 0:  # 1 or 2
                     current_color = check_color(self.current_grid_state[x, y])
-                    print(current_color + 'O' + Fore.BLUE, end=" ")
+                    print(current_color + "O" + Fore.BLUE, end=" ")
                 else:
                     print(" ", end=" ")
 
@@ -262,11 +288,12 @@ class ConnectFourBoard(object):
                     print("|")
                     next_col_symbol = "|"
             print(frame)
+        print(Fore.RESET, end="")
 
     def delete_board_from_stdout(self):
         for i in range(14):
-            stdout.write('\x1b[1A')
-            stdout.write('\x1b[2K')
+            print("\x1b[1A", end="")
+            print("\x1b[2K", end="")
 
     def get_height(self, column):
         grid_transp = np.transpose(self.current_grid_state)

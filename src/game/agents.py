@@ -1,6 +1,6 @@
 from enum import Enum
-from random import choice, randint, shuffle
-from sys import exit, stdout
+from random import choice, randint
+from sys import exit
 import datetime
 import pickle
 
@@ -96,7 +96,9 @@ class MiniMaxPlayer(Player):
         )
         connect4_board.delete_board_from_stdout()
 
-        logger.bind(verbose=True).debug("Max depth: {}".format(self.current_depth + self.max_depth))
+        logger.bind(verbose=True).debug(
+            "Max depth: {}".format(self.current_depth + self.max_depth)
+        )
         logger.bind(verbose=True).debug(
             "Avr. branching factor: {}".format(
                 np.mean(np.array(self.branching_factors, dtype=int))
@@ -109,11 +111,21 @@ class MiniMaxPlayer(Player):
         )
         logger.bind(verbose=True).debug(
             "{} cutoffs - (depth, count): {}".format(
-                len(self.cut_offs), ", ".join([str(item) for item in [(level+self.current_depth, self.cut_offs.count(level)) for level in set(self.cut_offs)]])
+                len(self.cut_offs),
+                ", ".join(
+                    [
+                        str(item)
+                        for item in [
+                            (level + self.current_depth, self.cut_offs.count(level))
+                            for level in set(self.cut_offs)
+                        ]
+                    ]
+                ),
             )
         )
         logger.bind(verbose=True).debug(
-            "AI {}'ve played into column {}.".format(self.no, move))
+            "AI {}'ve played into column {}.".format(self.no, move)
+        )
 
         self.current_depth += 2
 
@@ -206,7 +218,7 @@ class MiniMaxPlayer(Player):
 
             return score
 
-        def diag_streak(board, player_no, streak=4):
+        def _diag_streak(board, player_no, streak=4):
 
             score = 0
 
@@ -216,6 +228,12 @@ class MiniMaxPlayer(Player):
                 score += row_streak(np.diagonal(board, i), player_no, streak)
 
             return score
+
+        def diag_streak(board, player_no, streak=4):
+
+            return _diag_streak(board, player_no, streak) + _diag_streak(
+                np.flip(board, 1), player_no, streak
+            )
 
         def horz_streak(board, player_no, streak=4):
 
@@ -561,8 +579,8 @@ class NetworkPlayer(Player):
             if connect4_board.is_valid(nxt_mv):
                 break
 
-        stdout.write("\x1b[1A")
-        stdout.write("\x1b[2K")
+        print("\x1b[1A", end="")
+        print("\x1b[2K", end="")
         connect4_board.delete_board_from_stdout()
 
         return nxt_mv
