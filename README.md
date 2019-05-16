@@ -82,7 +82,7 @@ Connect Four is a two-player connection game in which the players first choose a
 4. Try to beat the hard AI
 
   ```bash
-  python3 ./src/play.py HUMANPLAYER vs MINMAXPLAYER --p2-difficulty=HARD
+  python3 ./src/play.py HUMANPLAYER vs MINIMAXPLAYER --p2-difficulty=HARD
   ```
 <br>
 

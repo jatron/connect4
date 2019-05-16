@@ -31,8 +31,9 @@ Options:
 
 from sys import exit, stdout
 import pickle
+import platform
 
-from colorama import Fore
+from colorama import Fore, init
 from docopt import docopt
 from loguru import logger
 from tinydb import Query, TinyDB
@@ -45,6 +46,9 @@ from game.board import ConnectFourBoard
 
 
 if __name__ == "__main__":
+
+    if platform.system() == 'Windows':
+        init(convert=True)
 
     args = docopt(__doc__)
 

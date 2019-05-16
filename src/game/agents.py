@@ -1,6 +1,6 @@
 from enum import Enum
-from random import choice, randint, shuffle
-from sys import exit, stdout
+from random import choice, randint
+from sys import exit
 import datetime
 import pickle
 
@@ -70,9 +70,9 @@ class MiniMaxPlayer(Player):
         super(MiniMaxPlayer, self).__init__(*args, **kwargs)
 
         if difficulty == Difficulty.EASY:
-            self.depth = 5
+            self.depth = 3
         elif difficulty == Difficulty.NORMAL:
-            self.depth = 6
+            self.depth = 5
         elif difficulty == Difficulty.HARD:
             self.depth = 7
 
@@ -96,7 +96,9 @@ class MiniMaxPlayer(Player):
         )
         connect4_board.delete_board_from_stdout()
 
-        logger.bind(verbose=True).debug("Max depth: {}".format(self.current_depth + self.max_depth))
+        logger.bind(verbose=True).debug(
+            "Max depth: {}".format(self.current_depth + self.max_depth)
+        )
         logger.bind(verbose=True).debug(
             "Avr. branching factor: {}".format(
                 np.mean(np.array(self.branching_factors, dtype=int))
@@ -109,11 +111,21 @@ class MiniMaxPlayer(Player):
         )
         logger.bind(verbose=True).debug(
             "{} cutoffs - (depth, count): {}".format(
-                len(self.cut_offs), ", ".join([str(item) for item in [(level+self.current_depth, self.cut_offs.count(level)) for level in set(self.cut_offs)]])
+                len(self.cut_offs),
+                ", ".join(
+                    [
+                        str(item)
+                        for item in [
+                            (level + self.current_depth, self.cut_offs.count(level))
+                            for level in set(self.cut_offs)
+                        ]
+                    ]
+                ),
             )
         )
         logger.bind(verbose=True).debug(
-            "AI {}'ve played into column {}.".format(self.no, move))
+            "AI {}'ve played into column {}.".format(self.no, move)
+        )
 
         self.current_depth += 2
 
@@ -190,53 +202,6 @@ class MiniMaxPlayer(Player):
         return b_move, reval
 
     def _util(self, connect4_board):
-        def row_streak(row, player_no, streak):
-
-            score = 0
-
-            if len(row) >= streak:
-                for i in range(len(row) - streak + 1):
-                    true_streak = True
-                    for no in range(streak):
-                        if row[i + no] != player_no:
-                            true_streak = False
-                            break
-                    if true_streak:
-                        score += 1
-
-            return score
-
-        def diag_streak(board, player_no, streak=4):
-
-            score = 0
-
-            for i in range(0, -len(board), -1):
-                score += row_streak(np.diagonal(board, i), player_no, streak)
-            for i in range(1, len(board[0])):
-                score += row_streak(np.diagonal(board, i), player_no, streak)
-
-            return score
-
-        def horz_streak(board, player_no, streak=4):
-
-            score = 0
-
-            for i in range(len(board)):
-                score += row_streak(board[i], player_no, streak)
-
-            return score
-
-        def vert_streak(board, player_no, streak=4):
-
-            return horz_streak(np.transpose(board), player_no, streak)
-
-        def streak(board, player_no, streak=4):
-
-            return (
-                diag_streak(board, player_no, streak)
-                + horz_streak(board, player_no, streak)
-                + vert_streak(board, player_no, streak)
-            )
 
         if connect4_board.current_player is self:
             player_no = connect4_board.current_player.no
@@ -252,10 +217,10 @@ class MiniMaxPlayer(Player):
             else:
                 player_no = connect4_board.player1.no
 
-        p4streaks = streak(connect4_board.current_grid_state, player_no, 4)
-        p3streaks = streak(connect4_board.current_grid_state, player_no, 3)
-        p2streaks = streak(connect4_board.current_grid_state, player_no, 2)
-        e4streaks = streak(connect4_board.current_grid_state, enemy_no, 4)
+        p4streaks = connect4_board.streak(player_no, 4)
+        p3streaks = connect4_board.streak(player_no, 3)
+        p2streaks = connect4_board.streak(player_no, 2)
+        e4streaks = connect4_board.streak(enemy_no, 4)
 
         return (
             1024 * 1024 * p4streaks
@@ -561,8 +526,8 @@ class NetworkPlayer(Player):
             if connect4_board.is_valid(nxt_mv):
                 break
 
-        stdout.write("\x1b[1A")
-        stdout.write("\x1b[2K")
+        print("\x1b[1A", end="")
+        print("\x1b[2K", end="")
         connect4_board.delete_board_from_stdout()
 
         return nxt_mv
@@ -599,7 +564,7 @@ class NetworkPlayer(Player):
 
 def RandomPlayer(*args, **kwargs):
 
-    return choice([ComputerPlayer])(*args, **kwargs)
+    return choice([MiniMaxPlayer])(*args, **kwargs)
 
 
 agents = {
