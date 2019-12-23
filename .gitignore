@@ -1,2 +1,5 @@
 # Environments
 .connect4_env/
+
+# Other
+src/game/__pycache__/
