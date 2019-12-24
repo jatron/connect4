@@ -13,6 +13,7 @@ Usage:
           [--local-port=PORT] [--peer-address=ADDRESS] [--peer-port=PORT]
           [--debugging] [--verbose]
           [--p1-difficulty=DIFFICULTY] [--p2-difficulty=DIFFICULTY]
+          [--missy-mode]
           <playertype> vs <playertype>
   play.py (-h | --help)
 
@@ -24,6 +25,7 @@ Options:
   --peer-port=PORT            Peer player's port [default: 3500].
   --p1-difficulty=DIFFICULTY  First player difficulty [default: NORMAL].
   --p2-difficulty=DIFFICULTY  Second player difficulty [default: NORMAL].
+  --missy-mode                Missy mode.
   -d --debugging              Save debugging log.
   -v --verbose                Turn on verbose output mode.
 """
@@ -126,6 +128,10 @@ if __name__ == "__main__":
                 logger.error("You must enter a correct difficulty.")
                 raise ValueError
 
+            missy_mode = False
+            if args["--missy-mode"]:
+              missy_mode = True
+
             if player1 is Agents.NetworkPlayer and player2 is Agents.NetworkPlayer:
                 logger.error("You must have at lease one local player.")
                 raise ValueError
@@ -164,7 +170,7 @@ if __name__ == "__main__":
                 player1 = agents[player1](no=1, time_limit=time_limit, difficulty=diff1)
                 player2 = agents[player2](no=2, time_limit=time_limit)
             elif player2 not in [Agents.HumanPlayer, Agents.NetworkPlayer]:
-                player1 = agents[player1](no=1, time_limit=time_limit)
+                player1 = agents[player1](no=1, time_limit=time_limit, missy_mode=missy_mode)
                 player2 = agents[player2](no=2, time_limit=time_limit, difficulty=diff2)
             else:
                 player1 = agents[player1](no=1, time_limit=time_limit)

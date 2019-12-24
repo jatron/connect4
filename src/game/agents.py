@@ -36,9 +36,10 @@ class Difficulty(Enum):
 
 
 class Player(object):
-    def __init__(self, no: int, time_limit: int = None, color=None):
+    def __init__(self, no: int, time_limit: int = None, color=None, missy_mode=False):
 
         self.no = no
+        self.missy_mode = missy_mode
 
         if time_limit is None:
             self.time_limit = 180  # Seconds
@@ -273,6 +274,8 @@ class HumanPlayer(Player):
             self.prt_str = (
                 self.color + "Player {}'s next move: ".format(self.no) + Fore.RESET
             )
+            if self.missy_mode:
+                self.prt_str = (self.color + "Your turn love! Next move: " + Fore.RESET)
 
         try:
             inp = "-1"
